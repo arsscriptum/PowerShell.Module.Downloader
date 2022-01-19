@@ -93,7 +93,11 @@ function Get-NotifierAppPath{                         # NOEXPORT
     $ModuleName = $ExecutionContext.SessionState.Module
     $RegPath = "$ENV:OrganizationHKCU\$ModuleName"
     $RegKeyName = 'NotificationAppPath'
-    $Result = (Get-ItemProperty -Path $RegPath -Name $RegKeyName).NotificationAppPath
+    $Result='C:\Programs\SystemTools\Notifier.exe'
+    if(Test-RegistryValue -Path $RegPath -Entry $RegKeyName){
+        $Result = Get-RegistryValue -Path $RegPath -Entry $RegKeyName   
+    }
+    
     return $Result
 }
 
@@ -210,13 +214,13 @@ function Initialize-BITSModule{
 
         $null = (New-Item $RegPath -Force).Name
         $null = New-ItemProperty -Path $RegPath -Name 'DefaultDownloadPath' -Value "$DestinationPath" -Force
-        Write-ResultMessage "DefaultDownloadPath $DestinationPath"
+        Write-ChannelResult "DefaultDownloadPath $DestinationPath"
         $null = New-ItemProperty -Path $RegPath -Name 'NotificationAppPath' -Value "$NotifierPath" -Force
-        Write-ResultMessage "NotificationAppPath $NotificationAppPath"
+        Write-ChannelResult "NotificationAppPath $NotifierPath"
         $null = New-ItemProperty -Path $RegPath -Name 'Initialized' -Value 1 -Force
-        Write-ResultMessage "Initialized $Initialized"
+        Write-ChannelResult "Initialized"
        
-        Write-Message "Setup Completed, exiting."
+        Write-ChannelResult "Setup Completed, exiting."
     }catch{
         write-error($_)
     }
