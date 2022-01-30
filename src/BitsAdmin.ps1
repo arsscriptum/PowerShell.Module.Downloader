@@ -110,7 +110,8 @@ function New-BITSJob {
         [Alias('p','path')]
         [string]$DestinationPath="",
         [Parameter(Mandatory=$false)]
-        [string]$Priority="Low"
+        [ValidateSet('Foreground','High','Normal','Low')]
+        [string]$Priority="Normal"
     )
     try{
         $BITSADMIN=(get-command bitsadmin.exe).Source
@@ -182,7 +183,7 @@ function Complete-BITSJobs{
 
         $Jobs = Get-BITSJobs
         if($Jobs){
-            $Jobs = $Jobs | where $_.Status -eq 'TRANSFERRED'    
+            $Jobs = $Jobs | where Status -eq 'TRANSFERRED'    
         }
         
         $NumJobs = 0
@@ -449,4 +450,80 @@ function Get-BITSJobStats{
    Write-Host "𝑻𝒓𝒂𝒏𝒔𝒇𝒆𝒓𝒆𝒅`t" -f DarkRed -NoNewLine ; Write-Host "$b1" -f DarkYellow
    Write-Host "𝑩𝒚𝒕𝒆𝒔 𝑻𝒐𝒕𝒂𝒍`t" -f DarkRed -NoNewLine ; Write-Host "$b2" -f DarkYellow
    Write-Host "𝑪𝒐𝒎𝒑𝒍𝒆𝒕𝒆𝒅 %`t" -f DarkRed -NoNewLine ; Write-Host "$ret" -f DarkGreen
+}
+
+function List-AllBITSJobs{
+    [CmdletBinding()]
+    param()
+
+    try{
+        $n = Get-BITSJobsCount ; if($n -eq 0){ write-ChannelMessage "No jobs" ; return; }
+
+        $Jobs = Get-BITSJobs
+        if($Jobs){
+            $Jobs = $Jobs | where Status -eq 'TRANSFERRED'    
+        }
+        
+        $NumJobs = 0
+        if($Jobs){$NumJobs = $Jobs.Count}
+        if($NumJobs -eq 0){
+            throw "No Jobs with status TRANSFERED"
+        }
+        $BITSADMIN=(get-command bitsadmin.exe).Source
+        
+        foreach($job in $Jobs){
+            $id = $job.ID
+            $name = $job.Name
+            $status = $job.Status
+            $File = $job.DestinationPath
+            if($status -eq 'TRANSFERRED'){
+                write-Host "Get-BITSJobStats -JobName $name"
+                
+            }
+        }
+
+    }catch{
+        Show-ExceptionDetails $_ -ShowStack
+    }
+}
+
+
+function Resume-BITSJobs{
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    try{
+        $n = Get-BITSJobsCount ; if($n -eq 0){ write-ChannelMessage "No jobs" ; return; }
+
+        $Jobs = Get-BITSJobs
+        if($Jobs){
+            $Jobs = $Jobs | where Status -eq 'TRANSIENT_ERROR'    
+        }
+        
+        $NumJobs = 0
+        if($Jobs){$NumJobs = $Jobs.Count}
+        if($NumJobs -eq 0){
+            throw "No Jobs with status TRANSIENT_ERROR"
+        }
+        $BITSADMIN=(get-command bitsadmin.exe).Source
+        
+        foreach($job in $Jobs){
+            $id = $job.ID
+            $name = $job.Name
+            $status = $job.Status
+            $File = $job.DestinationPath
+            if($status -eq 'TRANSIENT_ERROR'){
+                $formatstring = "RESUME Job Id {0} : {1}"
+                $fields = $id,$name
+                $Msg=($formatstring -f $fields)
+                write-ChannelMessage $Msg
+                Write-Verbose "$BITSADMIN /RESUME $id"
+                $Data = &"$BITSADMIN" /rawreturn /RESUME "$id"
+                $Data
+            }
+        }
+
+    }catch{
+        Write-Error $_
+    }
 }
