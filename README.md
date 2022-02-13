@@ -14,3 +14,12 @@ It also enables me to download files on multiple session (between reboots)
 
 
 
+## Links
+
+- [GITHUB REPOSITORY](https://github.com/arsscriptum/PowerShell.Module.Downloader)
+- [DOWNLOAD MODULE](https://arsscriptum.github.io/PowerShell.Module.Downloader.zip)
+- [DEMO](https://github.com/arsscriptum/PowerShell.Module.Downloader/blob/main/img/Animation.gif)
+
+
+
+
