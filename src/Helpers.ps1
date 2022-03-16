@@ -75,7 +75,7 @@ function Write-ChannelError{                # NOEXPORT
     Write-Host "$ExceptMsg`n`n" -ForegroundColor DarkYellow
 }
 
-function Get-DefaultDownloadPath{                         # NOEXPORT
+function Get-DefaultDownloadPath{     
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
@@ -85,7 +85,37 @@ function Get-DefaultDownloadPath{                         # NOEXPORT
     $Result =(Get-ItemProperty -Path $RegPath -Name $RegKeyName).DefaultDownloadPath
     return $Result
 }
+function Set-DefaultDownloadPath{        
+    [CmdletBinding(SupportsShouldProcess)]
+    param (
+     [parameter(Position=0,Mandatory=$true)]
+     [ValidateNotNullOrEmpty()]
+     [string]$Path
+    )
+    $ModuleName = $ExecutionContext.SessionState.Module
+    $RegPath = "$ENV:OrganizationHKCU\$ModuleName"
+    $RegKeyName = 'DefaultDownloadPath'
+    $Result = New-RegistryValue -Path $RegPath -Name $RegKeyName -Value $Path -Type 'String'
+    return $Result
+}
 
+
+function Set-NotifierAppPath{   
+    [CmdletBinding(SupportsShouldProcess)]
+    param (
+     [parameter(Position=0,Mandatory=$true)]
+     [ValidateNotNullOrEmpty()]
+     [string]$Path
+    )
+
+    $ModuleName = $ExecutionContext.SessionState.Module
+    $RegPath = "$ENV:OrganizationHKCU\$ModuleName"
+    $RegKeyName = 'NotificationAppPath'
+    $Result='C:\Programs\SystemTools\Notifier.exe'
+    $Result = New-RegistryValue -Path $RegPath -Name $RegKeyName -Value $Path -Type 'String'
+    
+    return $Result
+}
 
 function Get-NotifierAppPath{                         # NOEXPORT
     [CmdletBinding(SupportsShouldProcess)]
