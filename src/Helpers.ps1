@@ -13,7 +13,7 @@ class ChannelProperties
 {
     #ChannelProperties
     [string]$Channel = 'BITSADMIN'
-    [ConsoleColor]$TitleColor = 'Blue'
+    [ConsoleColor]$TitleColor = (Get-RandomColor)
     [ConsoleColor]$MessageColor = 'DarkGray'
     [ConsoleColor]$ErrorColor = 'DarkRed'
     [ConsoleColor]$SuccessColor = 'DarkGreen'
