@@ -5,7 +5,7 @@ online version:
 schema: 2.0.0
 ---
 
-# Complete-BITSJobs
+# Set-DefaultDownloadPath
 
 ## SYNOPSIS
 {{ Fill in the Synopsis }}
@@ -13,7 +13,7 @@ schema: 2.0.0
 ## SYNTAX
 
 ```
-Complete-BITSJobs [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-DefaultDownloadPath [-Path] <String> [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -40,6 +40,21 @@ Aliases: cf
 
 Required: False
 Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Path
+{{ Fill Path Description }}
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: True
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

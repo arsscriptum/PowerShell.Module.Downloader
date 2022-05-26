@@ -5,7 +5,7 @@ online version:
 schema: 2.0.0
 ---
 
-# Complete-BITSJobs
+# Resume-BITSJobs
 
 ## SYNOPSIS
 {{ Fill in the Synopsis }}
@@ -13,7 +13,7 @@ schema: 2.0.0
 ## SYNTAX
 
 ```
-Complete-BITSJobs [-WhatIf] [-Confirm] [<CommonParameters>]
+Resume-BITSJobs [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION

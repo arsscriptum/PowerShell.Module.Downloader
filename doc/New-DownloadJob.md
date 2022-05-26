@@ -5,7 +5,7 @@ online version:
 schema: 2.0.0
 ---
 
-# Complete-BITSJobs
+# New-DownloadJob
 
 ## SYNOPSIS
 {{ Fill in the Synopsis }}
@@ -13,7 +13,8 @@ schema: 2.0.0
 ## SYNTAX
 
 ```
-Complete-BITSJobs [-WhatIf] [-Confirm] [<CommonParameters>]
+New-DownloadJob [-Url] <String> [[-Name] <String>] [[-DestinationPath] <String>] [[-Priority] <String>]
+ [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -40,6 +41,67 @@ Aliases: cf
 
 Required: False
 Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -DestinationPath
+{{ Fill DestinationPath Description }}
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases: p, path
+
+Required: False
+Position: 2
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Name
+{{ Fill Name Description }}
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: 1
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Priority
+{{ Fill Priority Description }}
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+Accepted values: Foreground, High, Normal, Low
+
+Required: False
+Position: 3
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Url
+{{ Fill Url Description }}
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: True
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

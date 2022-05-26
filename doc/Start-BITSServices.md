@@ -1,6 +1,6 @@
 ---
-external help file: CodeCastor.PowerShell.Downloader-help.xml
-Module Name: CodeCastor.PowerShell.Downloader
+external help file: PowerShell.Module.Downloader-help.xml
+Module Name: PowerShell.Module.Downloader
 online version:
 schema: 2.0.0
 ---
