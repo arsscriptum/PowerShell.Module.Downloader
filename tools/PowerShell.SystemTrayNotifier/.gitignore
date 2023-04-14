@@ -1,0 +1,13 @@
+out
+out/**
+
+*.log
+**/*.log
+*.tmp
+**/*.tmp
+*.iso
+**/*.iso
+*.exe
+**/*.exe
+
+**/*.txt

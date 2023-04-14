@@ -1,0 +1,3 @@
+[submodule "tools/PowerShell.SystemTrayNotifier"]
+	path = tools/PowerShell.SystemTrayNotifier
+	url = https://github.com/arsscriptum/PowerShell.SystemTrayNotifier.git

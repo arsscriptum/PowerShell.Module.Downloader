@@ -1,0 +1,2 @@
+# PowerShell.SystemtrayNotifier
+PowerShell.SystemtrayNotifier
