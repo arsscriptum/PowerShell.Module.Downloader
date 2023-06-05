@@ -116,7 +116,7 @@ function Save-YoutubeVideo{
             $data =Request-VideoFormats $Url -e
             $Found = $False
             $data | % { 
-                if($_.format_id -eq 11){
+                if($_.format_id -eq $FormatId){
                  $DownloadUrl = $_.url
                  $Extension =  $_.ext
                  $Found = $True
