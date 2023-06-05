@@ -100,18 +100,26 @@ function Save-YoutubeVideo{
         [Parameter(Mandatory=$false, HelpMessage="If set, the command will return right away and download is done in the background")]
         [switch]$Asynchronous    
     )
+        Write-Debug "==============================================================================="
+        Write-Debug "                         *** DEBUG Save-YoutubeVideo ***                       "
+        Write-Debug "==============================================================================="
 
     try{
         $TestMode = $False
         if( ($PSBoundParameters.ContainsKey("WhatIf")) -Or ($PSBoundParameters.ContainsKey("Debug"))){
-            Write-LogEntry "======================================"
-            Write-LogEntry "Save-YoutubeVideo ==> TEST MODE"
-            Write-LogEntry "======================================"
+            Write-Debug "======================================"
+            Write-Debug "Save-YoutubeVideo ==> TEST MODE"
+            Write-Debug "======================================"
             $TestMode = $True
         }
         [string]$DownloadUrl = ''
         [string]$Extension = ''
         
+        Write-Debug "---------------------------------------------------"
+        Write-Debug "[Request-MediaDownload] Url `"$Url`""
+        $data =Request-VideoFormats $Url -e
+        Write-Debug "---------------------------------------------------"
+
         if($PSBoundParameters.ContainsKey("FormatId") -eq $True){
             $data =Request-VideoFormats $Url -e
             $Found = $False
@@ -137,27 +145,50 @@ function Save-YoutubeVideo{
         }
 
 
+        Write-Debug "---------------------------------------------------"
+        Write-Debug "[Request-VideoInformation] Url `"$Url`""
+        $VideoInformation = Request-VideoInformation $Url
+        Write-Debug "---------------------------------------------------"
 
-        Write-LogEntry "[Request-MediaDownload] Url `"$Url`""
-        Write-LogEntry "DownloadUrl      : $DownloadUrl"
-        Write-LogEntry "DestinationFile  : $DestinationFile"
-        Write-LogEntry "DownloadMode     : $DownloadMode"
+        [string]$Filename = $VideoInformation._filename
+        $Filename = $Filename.Replace(' ','_')
 
-        if($PSBoundParameters.ContainsKey("DestinationPath") -eq $False){
-            $MyVideos = [environment]::getfolderpath("myvideos")
-            $DownloadVideoPath = Join-Path $MyVideos 'DownloadModule'
-            if(-not(Test-Path -Path $DownloadVideoPath -PathType Container)){
-                $Null = New-Item -Path $DownloadVideoPath -ItemType "Directory" -Force -ErrorAction Ignore 
-            }
-            $DestinationPath = $DownloadVideoPath
+        [string]$Title = $VideoInformation.title
+        $Title = $Title.Replace(' ','_')
+
+        $DownloadVideoPath = Join-Path $DestinationPath $Title
+        if(-not(Test-Path -Path $DownloadVideoPath -PathType Container)){
+            $Null = New-Item -Path $DownloadVideoPath -ItemType "Directory" -Force -ErrorAction Ignore 
         }
-      
+        [string]$DestinationFile = Join-Path $DownloadVideoPath $Filename
+
+
+        [string]$VideoDesc = $VideoInformation.description
+
+
+        $DescriptionPath = Join-Path $DownloadVideoPath "Description.txt"
+        $Null = New-Item -Path $DescriptionPath -ItemType "File" -Force -ErrorAction Ignore 
+        Set-Content "$DescriptionPath" $VideoDesc -Force -ErrorAction Ignore 
+
+        [string]$ThumbnailUrl = $VideoInformation.thumbnail
+
+        Write-Debug "======================================"
+        Write-Debug "DownloadUrl      : $DownloadUrl"
+        Write-Debug "DestinationFile  : $DestinationFile"
+        Write-Debug "DownloadMode     : $DownloadMode"
+        Write-Debug "Filename         : $Filename"
+        Write-Debug "Title            : $Title"
+        Write-Debug "DownloadVideoPath: $DownloadVideoPath"
+        Write-Debug "VideoDesc.Length : $($VideoDesc.Length)"
+        Write-Debug "ThumbnailUrl     : $ThumbnailUrl"
+        Write-Debug "DescriptionPath  : $DescriptionPath"
+
         $UrlInvalid = ([string]::IsNullOrEmpty($DownloadUrl))
         $PathInvalid = ([string]::IsNullOrEmpty($DestinationPath))
         $ExtInvalid = ([string]::IsNullOrEmpty($Extension))
-        Write-LogEntry "UrlInvalid      : $UrlInvalid"
-        Write-LogEntry "PathInvalid     : $PathInvalid"
-        Write-LogEntry "ExtInvalid      : $ExtInvalid"
+        Write-Debug "UrlInvalid      : $UrlInvalid"
+        Write-Debug "PathInvalid     : $PathInvalid"
+        Write-Debug "ExtInvalid      : $ExtInvalid"
         if($UrlInvalid -Or $PathInvalid -Or $ExtInvalid){
             $Err=@"
 Save-YoutubeVideo : Invalid argument
@@ -167,36 +198,31 @@ DownloadMode     : `"$DownloadMode`"
 "@
             throw "$Err"
         }
+        Write-Debug "======================================"
 
+        return "$DestinationFile"
         ########################################################################
         #                      Save-InternetFile
         ########################################################################
-        
-        if($TestMode){
-            Write-LogEntry "DownloadUrl      : $DownloadUrl"
-            Write-LogEntry "DestinationFile  : $DestinationFile"
-            Write-LogEntry "DownloadMode     : $DownloadMode"
-            return
-        }
-                
+   
         switch( $DownloadMode ){
 
             'wget'      {
-                            Save-UsingWGetJob -Url $DownloadUrl -DestinationPath $DestinationPath -Asynchronous:$Asynchronous
+                            Save-UsingWGetJob -Url $DownloadUrl -DestinationPath $DestinationFile -Asynchronous:$Asynchronous
                         }
 
             "http"      {
-                            Save-UsingHttpJob -Url $DownloadUrl -DestinationPath $DestinationPath -Asynchronous:$Asynchronous
+                            Save-UsingHttpJob -Url $DownloadUrl -DestinationPath $DestinationFile -Asynchronous:$Asynchronous
                         }
             "bitsadmin" {
-                            Save-UsingBitsAdmin -Url $DownloadUrl -DestinationPath $DestinationPath -Asynchronous:$Asynchronous
+                            Save-UsingBitsAdmin -Url $DownloadUrl -DestinationPath $DestinationFile -Asynchronous:$Asynchronous
                         }
             "bits"      {
-                            Save-UsingBitsModule -Url $DownloadUrl -DestinationPath $DestinationPath -Asynchronous:$Asynchronous -EnableNotification
+                            Save-UsingBitsModule -Url $DownloadUrl -DestinationPath $DestinationFile -Asynchronous:$Asynchronous -EnableNotification
                         }
         }
         
-        "$DestinationPath"
+        "$DestinationFile"
     }
     catch{
         Write-LogEntry $_

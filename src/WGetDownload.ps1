@@ -196,6 +196,7 @@ function Receive-WGetJob{
     )
 
     try{
+        $TmpProgressFile = "$ENV:Temp\progress_$JobName.txt"
         $Transferring = $True
         $JobState = (Get-Job -Name $JobName).State
         Write-verbose "JobState: $JobState"
@@ -204,12 +205,14 @@ function Receive-WGetJob{
         }
         $ProgressTitle = "MODE: WGETJOB $JobName"
         while($Transferring){
+            Start-Sleep -Milliseconds 100
+            
             $JobState = (Get-Job -Name $JobName).State
             Write-verbose "JobState: $JobState"
             if($JobState -eq 'Completed'){
                 $Transferring = $False
             }
-            Start-Sleep -Milliseconds 500
+            
             Receive-Job -Name $JobName *>> $TmpProgressFile
                                
             $str = Get-Content $TmpProgressFile -Tail 1
