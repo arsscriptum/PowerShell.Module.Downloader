@@ -244,7 +244,7 @@ DownloadMode     : `"$DownloadMode`"
                             $Job = Save-UsingBitsAdmin -Url "$DownloadUrl" -DestinationPath "$DestinationFile" -Asynchronous:$Asynchronous
                         }
             "bits"      {
-                            $Job = Save-UsingBitsModule -Url "$DownloadUrl" -DestinationPath "$DestinationFile" -Asynchronous:$Asynchronous -EnableNotification
+                            $Job = Save-UsingBitsModule -Url "$DownloadUrl" -DestinationPath "$DestinationFile" -Asynchronous:$Asynchronous
                         }
         }
         
