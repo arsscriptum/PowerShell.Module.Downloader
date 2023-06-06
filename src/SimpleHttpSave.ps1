@@ -28,40 +28,12 @@ function Save-UsingWebClient{
     )
 
     try{
+        Write-Debug "==============================================================================="
+        Write-Debug "                       *** DEBUG Save-UsingWebClient ***                       "
+        Write-Debug "==============================================================================="
 
-
-       ################################################################################
-        # Get Url values
-        [Uri]$Val = $Url;
-        $HttpHost = $Val.Host
-        $HttpPathAndQuery = $Val.PathAndQuery
-        $FullPathAndQuery = $HttpHost + $HttpPathAndQuery
-        $Name = $Val.Segments[$Val.Segments.read_count-1]
-        #$Name = "{0}_{1}" -f $TimeStr, $Name
-        $HttpReferrer = $HttpHost
-
-        $IsContainer = $False
-        $ItemInfo = Get-Item -Path $DestinationPath -ErrorAction Ignore
-        if($Null -ne $ItemInfo){
-            $IsContainer = $ItemInfo.PSIsContainer
-        }
-        
-        if($IsContainer -eq $True){
-          $DestinationPath = Join-Path $DestinationPath $Name
-        }
-
-        if(Test-Path $DestinationPath -PathType Leaf){
-            $dn = (Get-Item $DestinationPath).DirectoryName
-            $bn = (Get-Item $DestinationPath).BaseName
-            $ex = (Get-Item $DestinationPath).Extension
-            [string]$rndname = (Get-Date).GetDateTimeFormats()[113]
-            $rndname = $rndname.Replace(':',"").Replace('0',"")
-            $newname = "{0}_{1}{2}" -f "$bn", "$rndname", "$ex"
-            $DestinationPath = Join-Path $dn $newname
-        }
-
-        Write-LogEntry "[Save-UsingWebClient] Url `"$Url`""
-        Write-LogEntry "[Save-UsingWebClient] DestinationPath `"$DestinationPath`""
+        Write-Debug "Url `"$Url`""
+        Write-Debug "DestinationPath `"$DestinationPath`""
 
         $ForceNoCache=$True
 

@@ -141,8 +141,6 @@ function Save-UsingHttpJob{
     )
 
     try{
-        $DestinationPath = Convert-DestinationPath $Url $DestinationPath
-
         $JobName = New-JobName
         Write-LogEntry "Start job `"$JobName`" Asynchronous $Asynchronous"
         $jobby = Start-Job -Name $JobName -ScriptBlock $HttpDownloadScriptBlock -ArgumentList ($Url,$DestinationPath)

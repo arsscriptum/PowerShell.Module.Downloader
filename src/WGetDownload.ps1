@@ -129,34 +129,19 @@ function Save-UsingWGetJob{
         [switch]$EnableNotification         
     )
     try{
-        $DestinationPath = Convert-DestinationPath $Url $DestinationPath
-
-        # Generate a UNIQUE JOB NAME, but easy to use, not a GUID with 64 chars...
-        [string]$JobName = (Get-Date).GetDateTimeFormats()[113]
-        $JobName = $JobName.Replace(':',"").Replace('0',"")
-        $v1 = Get-Random -Maximum 25 -Minimum 1
-        $v2 = Get-Random -Maximum 25 -Minimum 1
-        $arrrnd = @($v1,$v2)
-        $arrrnd | % { $JobName += [char]($_ + 65) }
-
-        $DestinationPath = Convert-DestinationPath $Url $DestinationPath
-        
-        if(Test-Path $DestinationPath -PathType Leaf){
-            $dn = (Get-Item $DestinationPath).DirectoryName
-            $bn = (Get-Item $DestinationPath).BaseName
-            $ex = (Get-Item $DestinationPath).Extension
-            [string]$rndname = (Get-Date).GetDateTimeFormats()[113]
-            $rndname = $rndname.Replace(':',"").Replace('0',"")
-            $newname = "{0}_{1}{2}" -f "$bn", "$rndname", "$ex"
-            $DestinationPath = Join-Path $dn $newname
-        }
+        [string]$JobName = (New-Guid).Guid
+        $JobName = $JobName.Replace('-','')
         $WgetExe          = Get-WGetExecutable
-        Write-LogEntry "=========================================================="
-        Write-LogEntry "Asynchronous     : $Asynchronous"
-        Write-LogEntry "DestinationPath  : $DestinationPath"
-        Write-LogEntry "Url              : $Url"
-        Write-LogEntry "DownloadMode     : $DownloadMode"
-        Write-LogEntry "=========================================================="
+        Write-Debug "==============================================================================="
+        Write-Debug "                         *** DEBUG Save-UsingWGetJob ***                       "
+        Write-Debug "==============================================================================="
+
+        Write-Debug "Asynchronous     : $Asynchronous"
+        Write-Debug "DestinationPath  : $DestinationPath"
+        Write-Debug "Url              : $Url"
+        Write-Debug "DownloadMode     : $DownloadMode"
+        Write-Debug "JobName          : $JobName"
+        Write-Debug "=========================================================="
         
 
         $ProgressTitle = "MODE: WGET [$JobName]"

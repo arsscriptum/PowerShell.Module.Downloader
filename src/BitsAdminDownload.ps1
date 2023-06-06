@@ -159,8 +159,6 @@ function Save-UsingBitsAdmin{
     )
     try{
 
-        $DestinationPath = Convert-DestinationPath $Url $DestinationPath
-
         $JobName = New-JobName
         Write-LogEntry "Save-UsingBitsAdmin `"$JobName`" Asynchronous $Asynchronous"
         $TmpFile = New-TmpFileName
@@ -366,7 +364,7 @@ function Receive-BitsAdminJob{
                                         Write-LogEntry "TRANSFER COMPLETED! " -f DarkGreen
                                         $CompletedListenerJob = "{0}_COMPLETE" -f $JobName
                                         $Logs = Receive-Job -Name $CompletedListenerJob -Wait -ErrorAction Ignore
-                                        
+                                        &"$BitsAdminExe" "/complete" "$JobName" >> $TmpFile 
                                         $ProcessingDownload = $False
                                     }
                 

@@ -5,7 +5,7 @@
 #>
 
 
-function Get-DlModuleInformation{
+function Get-DlModuleInformation{  # NOEXPORT
 
         $ModuleName = $ExecutionContext.SessionState.Module
         $ModuleScriptPath = $ScriptMyInvocation = $Script:MyInvocation.MyCommand.Path
@@ -19,10 +19,24 @@ function Get-DlModuleInformation{
         return $ModuleInformation
 }
 
-function Get-DownloaderModuleExportsPath{   
+function Get-DownloaderModuleExportsPath{   v
     $ModPath = (Get-DlModuleInformation).ModuleScriptPath
     $ExportsPath = Join-Path $ModPath 'exports'
     return $ExportsPath
+}
+
+
+function Get-CleanFilename{   
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Position=0,Mandatory = $true)]
+        [string]$Filename
+    )
+    $NewFilename = $Filename.Clone()
+    $arrInvalidChars = '[]/|\+={}-$%^&*() '.ToCharArray()  + [IO.Path]::GetInvalidFileNameChars()
+    $arrInvalidChars | % { $NewFilename = $NewFilename.replace("$_",'')} 
+  
+    return $NewFilename
 }
 
 
@@ -48,7 +62,7 @@ function Show-YoutubeDlHelp{
     }
 }
 
-function Convert-DestinationPath{
+function Convert-DestinationPath{   # NOEXPORT
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Position=0,Mandatory = $true)]
@@ -412,7 +426,7 @@ function Get-YoutubeDlPath{      # NOEXPORT
     $powershellCmd = Get-Command 'yt-dlp' -ErrorAction Ignore
     if(($powershellCmd -ne $Null ) -And (test-path -Path "$($powershellCmd.Source)" -PathType Leaf)){
         $youtubeExePath = $powershellCmd.Source
-        Write-Verbose "✅ Found youtube-dl.exe CMD [$youtubeExePath]"
+        Write-Verbose "✅ Found yt-dlp.exe CMD [$youtubeExePath]"
         Return $youtubeExePath 
     }
 
@@ -422,7 +436,7 @@ function Get-YoutubeDlPath{      # NOEXPORT
     [String[]]$validPwshExeFiles=@($pwshFiles|?{test-path $_})
     $validPwshExeFilesCount = $validPwshExeFiles.Count
     if($validPwshExeFilesCount){
-        Write-Verbose "✅ Found youtube-dl.exe in expectedLocations [$validPwshExeFiles[0]]"
+        Write-Verbose "✅ Found yt-dlp.exe in expectedLocations [$validPwshExeFiles[0]]"
         return $validPwshExeFiles[0]
     }
 }
@@ -473,7 +487,7 @@ function Reset-DlModJobs{
 
 
 
-function Get-BitsJobsPSObjects{
+function Get-BitsJobsPSObjects{  # NOEXPORT
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$false)]

@@ -83,6 +83,8 @@ $ErrorDestinationFile
                                         $CompletedListenerJob = "{0}_COMPLETE" -f $JobName
                                         $Logs = Receive-Job -Name $CompletedListenerJob -Wait -ErrorAction Ignore
                                         Write-LogEntry "$Logs" -f Gray
+                                        $BitsAdminExe = Get-BitsAdminExecutable
+                                        &"$BitsAdminExe" "/complete" "$JobName" *> "$ENV:Temp\temp.txt"
                                         $ProcessingDownload = $False
                                     }
                 
@@ -117,9 +119,6 @@ function Save-UsingBitsModule{
         [string]$Priority="Foreground"
     )
     try{
-
-        $DestinationPath = Convert-DestinationPath $Url $DestinationPath
-
         $JobName = New-JobName
         $Params = @{
             DisplayName    = $JobName

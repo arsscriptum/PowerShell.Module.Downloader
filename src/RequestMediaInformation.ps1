@@ -90,6 +90,9 @@ function Save-YoutubeVideo{
         [Parameter(Mandatory=$false, HelpMessage="This integer Format Identifier is used to select a video format to download.")]
         [Alias('f')]
         [int]$FormatId,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet('m4a','webm')]
+        [String]$AudioExtension='webm',
         [Parameter(Mandatory=$false, HelpMessage="Download the AUDIO track only")]
         [Alias('a')]
         [switch]$AudioOnly,
@@ -98,35 +101,40 @@ function Save-YoutubeVideo{
         [ValidateSet('wget',"http","bits","bitsadmin")]
         [string]$DownloadMode="bits",    
         [Parameter(Mandatory=$false, HelpMessage="If set, the command will return right away and download is done in the background")]
-        [switch]$Asynchronous    
+        [switch]$Asynchronous,    
+        [Parameter(Mandatory=$false, HelpMessage="If set, download from https protocol only")]
+        [switch]$ForceHttps
     )
-        Write-Debug "==============================================================================="
-        Write-Debug "                         *** DEBUG Save-YoutubeVideo ***                       "
-        Write-Debug "==============================================================================="
 
     try{
         $TestMode = $False
         if( ($PSBoundParameters.ContainsKey("WhatIf")) -Or ($PSBoundParameters.ContainsKey("Debug"))){
-            Write-Debug "======================================"
-            Write-Debug "Save-YoutubeVideo ==> TEST MODE"
-            Write-Debug "======================================"
             $TestMode = $True
+            Write-Debug "==============================================================================="
+            Write-Debug "                         *** DEBUG Save-YoutubeVideo ***                       "
+            Write-Debug "==============================================================================="
         }
-        [string]$DownloadUrl = ''
-        [string]$Extension = ''
-        
+
         Write-Debug "---------------------------------------------------"
-        Write-Debug "[Request-MediaDownload] Url `"$Url`""
-        $data =Request-VideoFormats $Url -e
+        Write-Debug "[Request-VideoInformation] Url `"$Url`""
+        $VideoInformation = Request-VideoInformation $Url
         Write-Debug "---------------------------------------------------"
 
+        [string]$DownloadUrl = ''
+        [string]$Extension = $VideoInformation.ext
+        
+        if($Protocol -eq 'any'){
+            $Protocol = 'http_dash_segments|https'
+        }
+        $VideoFormats = $VideoInformation.formats | select * 
+        [int]$FileSize = 0
         if($PSBoundParameters.ContainsKey("FormatId") -eq $True){
-            $data =Request-VideoFormats $Url -e
             $Found = $False
-            $data | % { 
+            $VideoFormats | % { 
                 if($_.format_id -eq $FormatId){
                  $DownloadUrl = $_.url
                  $Extension =  $_.ext
+                 $FileSize = $_.filesize_approx
                  $Found = $True
              } 
             }
@@ -134,63 +142,81 @@ function Save-YoutubeVideo{
    
         }else{
             if($AudioOnly){
-                $selected = Select-BestAudioFormat $Url
+                $selected =  $VideoFormats | Where acodec -ne 'none' | Where vcodec -eq 'none' | where ext -eq "$AudioExtension" |  Sort -Property quality -Descending | select -First 1
                 $DownloadUrl =  $selected.url
                 $Extension =  $selected.ext
+                $FileSize = $selected.filesize_approx
+
             }else{
-                $selected = Select-VideoByQuality $Url
+                if($ForceHttps){
+                    $selected = $VideoFormats | Where vcodec -ne 'none' | Where acodec -ne 'none' | Where protocol -eq "https" | Sort -Property quality -Descending | select -First 1
+                }else{
+                    $selected = $VideoFormats | Where vcodec -ne 'none' | Where acodec -ne 'none' | Sort -Property quality -Descending | select -First 1
+                }
+                
                 $DownloadUrl =  $selected.url
                 $Extension =  $selected.ext
+                $FileSize = $selected.filesize_approx
             }
         }
 
 
-        Write-Debug "---------------------------------------------------"
-        Write-Debug "[Request-VideoInformation] Url `"$Url`""
-        $VideoInformation = Request-VideoInformation $Url
-        Write-Debug "---------------------------------------------------"
-
-        [string]$Filename = $VideoInformation._filename
-        $Filename = $Filename.Replace(' ','_')
-
         [string]$Title = $VideoInformation.title
-        $Title = $Title.Replace(' ','_')
 
-        $DownloadVideoPath = Join-Path $DestinationPath $Title
+        $CleanFilename = Get-CleanFilename $Title
+
+        $DownloadVideoPath = Join-Path $DestinationPath $CleanFilename
         if(-not(Test-Path -Path $DownloadVideoPath -PathType Container)){
             $Null = New-Item -Path $DownloadVideoPath -ItemType "Directory" -Force -ErrorAction Ignore 
         }
-        [string]$DestinationFile = Join-Path $DownloadVideoPath $Filename
-
-
+        $Num = 0
+        [string]$DestinationFile = "{0}\{1}.{2}" -f $DownloadVideoPath, $CleanFilename, $Extension
+        $Exists = Test-Path -Path $DestinationFile -PathType Leaf
+        while($Exists){
+            $Num = $Num + 1
+            $DestinationFile = "{0}\{1}-{2:d4}.{3}" -f $DownloadVideoPath,  $CleanFilename,$Num, $Extension
+            $Exists = Test-Path -Path $DestinationFile -PathType Leaf
+        }
         [string]$VideoDesc = $VideoInformation.description
 
-
         $DescriptionPath = Join-Path $DownloadVideoPath "Description.txt"
-        $Null = New-Item -Path $DescriptionPath -ItemType "File" -Force -ErrorAction Ignore 
-        Set-Content "$DescriptionPath" $VideoDesc -Force -ErrorAction Ignore 
-
+        try{
+            if(-not(Test-Path -Path $DescriptionPath -PathType Leaf)){
+                Set-Content "$DescriptionPath" "$VideoDesc" -Force -Encoding 'ascii' -ErrorAction Stop 
+            }
+        }catch{
+            Write-Host "[ERROR] " -n -f DarkRed
+            Write-Host "Write Description file : $_" -f DarkYellow
+        }
         [string]$ThumbnailUrl = $VideoInformation.thumbnail
 
-        Write-Debug "======================================"
-        Write-Debug "DownloadUrl      : $DownloadUrl"
-        Write-Debug "DestinationFile  : $DestinationFile"
-        Write-Debug "DownloadMode     : $DownloadMode"
-        Write-Debug "Filename         : $Filename"
-        Write-Debug "Title            : $Title"
-        Write-Debug "DownloadVideoPath: $DownloadVideoPath"
-        Write-Debug "VideoDesc.Length : $($VideoDesc.Length)"
-        Write-Debug "ThumbnailUrl     : $ThumbnailUrl"
-        Write-Debug "DescriptionPath  : $DescriptionPath"
 
-        $UrlInvalid = ([string]::IsNullOrEmpty($DownloadUrl))
-        $PathInvalid = ([string]::IsNullOrEmpty($DestinationPath))
-        $ExtInvalid = ([string]::IsNullOrEmpty($Extension))
-        Write-Debug "UrlInvalid      : $UrlInvalid"
-        Write-Debug "PathInvalid     : $PathInvalid"
-        Write-Debug "ExtInvalid      : $ExtInvalid"
-        if($UrlInvalid -Or $PathInvalid -Or $ExtInvalid){
-            $Err=@"
+        if($TestMode){
+            Write-Debug "================================================================"
+            Write-Debug "================================================================"
+            Write-Debug "DownloadUrl      : $DownloadUrl"
+            Write-Debug "DestinationFile  : $DestinationFile"
+            Write-Debug "DownloadMode     : $DownloadMode"
+            Write-Debug "Filename         : $CleanFilename"
+            Write-Debug "Extension        : $Extension"
+            Write-Debug "Title            : $Title"
+            Write-Debug "DownloadVideoPath: $DownloadVideoPath"
+            Write-Debug "VideoDesc.Length : $($VideoDesc.Length)"
+            Write-Debug "ThumbnailUrl     : $ThumbnailUrl"
+            Write-Debug "FileSize         : $FileSize bytes"
+            [string]$FileSizeStr = Convert-Bytes $FileSize -Format MB
+            Write-Debug "FileSize         : $FileSizeStr"
+            $UrlInvalid = ([string]::IsNullOrEmpty($DownloadUrl))
+            $PathInvalid = ([string]::IsNullOrEmpty($DestinationPath))
+            $ExtInvalid = ([string]::IsNullOrEmpty($Extension))
+            Write-Debug "UrlInvalid      : $UrlInvalid"
+            Write-Debug "PathInvalid     : $PathInvalid"
+            Write-Debug "ExtInvalid      : $ExtInvalid"
+            Write-Debug "================================================================"
+            Write-Debug "================================================================"
+
+            if($UrlInvalid -Or $PathInvalid -Or $ExtInvalid){
+                $Err=@"
 Save-YoutubeVideo : Invalid argument
 DownloadUrl      : `"$DownloadUrl`"
 DestinationFile  : `"$DestinationFile`"
@@ -198,9 +224,9 @@ DownloadMode     : `"$DownloadMode`"
 "@
             throw "$Err"
         }
-        Write-Debug "======================================"
 
-        return "$DestinationFile"
+            return "$DestinationFile"
+        }
         ########################################################################
         #                      Save-InternetFile
         ########################################################################
@@ -208,17 +234,17 @@ DownloadMode     : `"$DownloadMode`"
         switch( $DownloadMode ){
 
             'wget'      {
-                            Save-UsingWGetJob -Url $DownloadUrl -DestinationPath $DestinationFile -Asynchronous:$Asynchronous
+                            $Job = Save-UsingWGetJob -Url "$DownloadUrl" -DestinationPath "$DestinationFile" -Asynchronous:$Asynchronous
                         }
 
             "http"      {
-                            Save-UsingHttpJob -Url $DownloadUrl -DestinationPath $DestinationFile -Asynchronous:$Asynchronous
+                            $Job = Save-UsingHttpJob -Url "$DownloadUrl" -DestinationPath "$DestinationFile" -Asynchronous:$Asynchronous
                         }
             "bitsadmin" {
-                            Save-UsingBitsAdmin -Url $DownloadUrl -DestinationPath $DestinationFile -Asynchronous:$Asynchronous
+                            $Job = Save-UsingBitsAdmin -Url "$DownloadUrl" -DestinationPath "$DestinationFile" -Asynchronous:$Asynchronous
                         }
             "bits"      {
-                            Save-UsingBitsModule -Url $DownloadUrl -DestinationPath $DestinationFile -Asynchronous:$Asynchronous -EnableNotification
+                            $Job = Save-UsingBitsModule -Url "$DownloadUrl" -DestinationPath "$DestinationFile" -Asynchronous:$Asynchronous -EnableNotification
                         }
         }
         
@@ -267,15 +293,15 @@ function Request-VideoInformation{
         [string]$epoc_time = (Get-Date -uFormat %s)
         $Path = "{0}\{1}_{2}.json" -f $ENV:Temp, 'YoutubeMediaInformation', $epoc_time
         
-        Write-LogEntry "Youtube Dl : $YoutubeDlPath"
-        Write-LogEntry "Output file: $Path"
+        Write-Debug "Youtube Dl : $YoutubeDlPath"
+        Write-Debug "Output file: $Path"
 
         &"$YoutubeDlPath" '-j' "$Url" > $Path
         $Success = $?
         $JsonSize = (gi $Path).Length
 
-        Write-LogEntry "Operation Success : $Success"
-        Write-LogEntry "Output file size  : $JsonSize"
+        Write-Debug "Operation Success : $Success"
+        Write-Debug "Output file size  : $JsonSize"
 
         if( ($Success -eq $false) -Or  ($JsonSize -eq 0) ){
             throw "youtube-dl.exe failure. Output file size  : $JsonSize. Operation Success : $Success"
@@ -300,8 +326,6 @@ function Request-VideoInformation{
     Function to get all the available formats for the video
 .PARAMETER Url
     Url of the Youtube video
-.PARAMETER Extended
-    Flag: Get Extended information
 .ExternalHelp  https://arsscriptum.github.io/files/help/ModDl-help.xml
 #>
 
@@ -309,32 +333,13 @@ function Request-VideoFormats{
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$true, ValueFromPipeline=$true, HelpMessage="Url of the Youtube video", Position=0)]
-        [string]$Url,
-        [Parameter(Mandatory=$false, HelpMessage="Flag: Get Extended information")]
-        [Alias('e','x','all')]
-        [switch]$Extended
+        [string]$Url
     )
-    $data = Request-VideoInformation $Url
-    if($Extended){
-        $format_list = $data.formats | select * | sort -Property quality
-        $format_list 
-    }else{
-        $avail_formats = [system.collections.arraylist]::new()
-        $format_list = $data.formats | select format_note,ext,format_id, format, quality | sort -Property quality
-        $format_list | % {
-            $obj = [pscustomobject]@{
-                Id = $_.format_id
-                Format = $_.format
-                Quality = $_.quality
-                #Note = $_.format_note
-                Extension = $_.ext
-            }
-            [void]$avail_formats.Add($obj)
-        }
-        $avail_formats
-        #$format_list
-    }
+    $Data = Request-VideoInformation $Url
+    $VideoFormats = $Data.formats | select * | sort -Property quality
+    $VideoFormats
 }   
+
 
 function Select-BestVideoFormat{ 
 
@@ -343,67 +348,20 @@ function Select-BestVideoFormat{
         [Parameter(Mandatory=$true,Position=0)]
         [String]$Url,
         [Parameter(Mandatory=$false)]
-        [String]$Extension
+        [switch]$AudioIncluded
     )
     
     try{
         $Data = Request-VideoFormats $Url -e
-        if($PSBoundParameters.ContainsKey("Extension") -eq $True){
-            [psobject[]]$Out = $Data | Where ext -imatch $Extension
-            if($Out.Count -gt 0){
-                $Out[$Out.Count-1]
-            }
-        }else{
-            $Data[$Data.Count-1]
+        if($AudioIncluded){
+            $Merged = $Data | Where vcodec -ne 'none' | Where acodec -ne 'none' | Sort -Property quality -Descending | select -First 1
+            return $Merged
         }
+        $ReturnFmt = $Data | Sort -Property quality -Descending | select -First 1
+        return $ReturnFmt
     }
     catch{
         Write-LogEntry $_
-        #Show-InternalMiniErrorPopup "EXCEPTION OCCURED $_"
-        Show-ExceptionDetails $_ -ShowStack
-    }
-}
-<#
-.SYNOPSIS
-
-Function to get all detailed video information
-
-.DESCRIPTION
-
-Function to get all detailed video information
-
-.PARAMETER Url
-
-Url of the Youtube video
-
-#>
-function Select-VideoByQuality{
-
-    [CmdletBinding(SupportsShouldProcess)]
-    param(
-        [Parameter(Mandatory=$true,Position=0)]
-        [String]$Url,
-        [Parameter(Mandatory=$false)]
-        [int]$Quality=3
-    )
-    
-    try{
-        $Data = Request-VideoFormats $Url -e
-        if($PSBoundParameters.ContainsKey("Extension") -eq $True){
-            [psobject[]]$Out = $Data | Where quality -eq $Quality | Where ext -imatch $Extension
-            if($Out.Count -gt 0){
-                $Out[0]
-            }
-        }else{
-            [psobject[]]$Out = $Data |  Where quality -eq $Quality 
-            if($Out.Count -gt 0){
-                $Out[0]
-            }
-        }
-    }
-    catch{
-        Write-LogEntry $_
-        #Show-InternalMiniErrorPopup "EXCEPTION OCCURED $_"
         Show-ExceptionDetails $_ -ShowStack
     }
 }
@@ -416,22 +374,14 @@ function Select-BestAudioFormat{
         [Parameter(Mandatory=$true,Position=0)]
         [String]$Url,
         [Parameter(Mandatory=$false)]
-        [String]$Extension
+        [ValidateSet('m4a','webm','3gp')]
+        [String]$Extension='m4a'
     )
     
     try{
         $Data = Request-VideoFormats $Url -e
-        if($PSBoundParameters.ContainsKey("Extension") -eq $True){
-            [psobject[]]$Out = $Data | Where format -imatch 'audio' | Where ext -imatch $Extension | sort -Property filesize -Descending
-            if($Out.Count -gt 0){
-                $Out[0]
-            }
-        }else{
-            [psobject[]]$Out = $Data | Where format -imatch 'audio' | sort -Property filesize -Descending
-            if($Out.Count -gt 0){
-                $Out[0]
-            }
-        }
+        $ReturnFmt =  $Data | Where acodec -ne 'none' | Where vcodec -eq 'none' | where ext -eq "$Extension" |  Sort -Property quality -Descending | select -First 1
+        return $ReturnFmt
     }
     catch{
         Write-LogEntry $_
