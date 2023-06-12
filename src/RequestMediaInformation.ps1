@@ -347,7 +347,7 @@ function Request-VideoFormats{
     if($SelectAllProperties){
         $VideoFormats = $Data.formats | select * | sort -Property quality
     }else{
-        $VideoFormats = $Data.formats | select format_id, protocol, vcodec, acodec, ext, height,  width, format, audio_ext, video_ext, http_headers | sort -Property quality
+        $VideoFormats = $Data.formats | select format_id, quality, protocol, vcodec, acodec, ext, height,  width, format, audio_ext, video_ext, http_headers | sort -Property quality
     }
     
     $VideoFormats
