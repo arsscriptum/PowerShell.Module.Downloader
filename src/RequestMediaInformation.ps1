@@ -142,7 +142,7 @@ function Save-YoutubeVideo{
    
         }else{
             if($AudioOnly){
-                $selected =  $VideoFormats | Where acodec -ne 'none' | Where vcodec -eq 'none' | where ext -eq "$AudioExtension" |  Sort -Property quality -Descending | select -First 1
+                $selected =  $VideoFormats | Where acodec -ne 'none' | Where vcodec -eq 'none'  |  Sort -Property quality -Descending | select -First 1
                 $DownloadUrl =  $selected.url
                 $Extension =  $selected.ext
                 $FileSize = $selected.filesize_approx
