@@ -19,7 +19,7 @@ function Get-DlModuleInformation{  # NOEXPORT
         return $ModuleInformation
 }
 
-function Get-DownloaderModuleExportsPath{   v
+function Get-DownloaderModuleExportsPath{   
     $ModPath = (Get-DlModuleInformation).ModuleScriptPath
     $ExportsPath = Join-Path $ModPath 'exports'
     return $ExportsPath

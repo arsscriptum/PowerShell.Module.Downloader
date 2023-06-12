@@ -6,7 +6,7 @@
 
 
 
-
+$Script:ShowNotification = $True
 
 function Get-WGetExecutable{     # NOEXPORT
     [CmdletBinding(SupportsShouldProcess)]
@@ -36,9 +36,12 @@ function Save-UsingStartProcessWGet{
         [Parameter(Mandatory=$true, ValueFromPipeline=$true, HelpMessage="WgetExe", Position =2)]
         [string]$WgetExe,    
         [Parameter(Mandatory=$false)]
-        [switch]$Asynchronous          
+        [switch]$Asynchronous,    
+        [Parameter(Mandatory=$false)]
+        [bool]$ShowNotification=$True             
     )
     try{
+        
         [string]$epoc_time = (Get-Date -uFormat %s)
         $FNameOut = "{0}\{1}_{2}.log" -f $ENV:Temp, 'STDOUT', $epoc_time
         $FNameErr = "{0}\{1}_{2}.log" -f $ENV:Temp, 'STDERR', $epoc_time
@@ -53,7 +56,7 @@ function Save-UsingStartProcessWGet{
             NoNewWindow            = $true
         }
 
-        $ArgumentList = @("-q", "--progress=bar:force:noscroll", "$Url", "-O", "$DestinationPath")
+        $ArgumentList = @("-q", "--progress=bar:force:noscroll", "$Url", "-O", "$DestinationPath", $ShowNotification)
 
         $cmd = Start-Process @startProcessParams -ArgumentList $ArgumentList
         $cmdExitCode = $cmd.ExitCode
@@ -93,11 +96,19 @@ function Save-UsingStartProcessWGet{
 
 
 $WGetDownloadJob = {
-      param([string]$Url,[string]$DestinationFile,[string]$WgetExe)   
+      param([string]$Url,[string]$DestinationFile,[string]$WgetExe,[bool]$ShowNotification)   
   
     try{
         $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         &"$WgetExe" "$Url" "-O" "$DestinationFile"
+
+        if($ShowNotification -eq $True){
+            $ENV:NotifyTitle = "DOWNLOAD COMPLETE"
+            $ENV:NotifyText = "$DestinationFile"
+            $PwshExe = (Get-Command 'pwsh.exe').Source
+            $ArgList = @("-nop","-noni","-encodedcommand", "ZgB1AG4AYwB0AGkAbwBuACAATgBlAHcALQBUAHIAYQB5AE4AbwB0AGkAZgBpAGUAcgB7AA0ACgAgACAAIAAgAFsAQwBtAGQAbABlAHQAQgBpAG4AZABpAG4AZwAoAFMAdQBwAHAAbwByAHQAcwBTAGgAbwB1AGwAZABQAHIAbwBjAGUAcwBzACkAXQANAAoAIAAgACAAIABwAGEAcgBhAG0AKAApAA0ACgAgACAAIAAgACQASQBjAG8AbgAgAD0AIAAiAHkAbwB1AHQAdQBiAGUAXwBjAG8AbABvAHIAIgANAAoAIAAgACAAIAAkAFQAaQB0AGwAZQAgAD0AIAAiACQARQBOAFYAOgBOAG8AdABpAGYAeQBUAGkAdABsAGUAIgANAAoAIAAgACAAIAAkAFQAZQB4AHQAIAA9ACAAIgAkAEUATgBWADoATgBvAHQAaQBmAHkAVABlAHgAdAAiAA0ACgAgACAAIAAgACQARAB1AHIAYQB0AGkAbwBuACAAPQAgADUAMAAwADAADQAKACAAIAAgACAAQQBkAGQALQBUAHkAcABlACAALQBBAHMAcwBlAG0AYgBsAHkATgBhAG0AZQAgAFMAeQBzAHQAZQBtAC4AVwBpAG4AZABvAHcAcwAuAEYAbwByAG0AcwANAAoAIAAgACAAIABbAFMAeQBzAHQAZQBtAC4AVwBpAG4AZABvAHcAcwAuAEYAbwByAG0AcwAuAE4AbwB0AGkAZgB5AEkAYwBvAG4AXQAkAE0AeQBOAG8AdABpAGYAaQBlAHIAIAA9ACAAWwBTAHkAcwB0AGUAbQAuAFcAaQBuAGQAbwB3AHMALgBGAG8AcgBtAHMALgBOAG8AdABpAGYAeQBJAGMAbwBuAF0AOgA6AG4AZQB3ACgAKQANAAoADQAKAA0ACgAgACAAIAAgACQASQBjAG8AbgBQAGEAdABoACAAPQAgACIAQwA6AFwARABPAEMAVQBNAEUATgBUAFMAXABQAG8AdwBlAHIAUwBoAGUAbABsAFwATQBvAGQAdQBsAGUAcwBcAFAAbwB3AGUAcgBTAGgAZQBsAGwALgBNAG8AZAB1AGwAZQAuAEQAbwB3AG4AbABvAGEAZABlAHIAXABlAHgAcABvAHIAdABzAFwAaQBjAG8AXAB5AG8AdQB0AHUAYgBlAF8AYwBvAGwAbwByAC4AaQBjAG8AIgANAAoAIAAgACAAIAAgACAAIAANAAoAIAAgACAAIAAkAE0AeQBOAG8AdABpAGYAaQBlAHIALgBJAGMAbwBuACAAPQAgAFsAUwB5AHMAdABlAG0ALgBEAHIAYQB3AGkAbgBnAC4ASQBjAG8AbgBdADoAOgBuAGUAdwAoACQASQBjAG8AbgBQAGEAdABoACkADQAKACAAIAAgACAADQAKAA0ACgAgACAAIAAgACQATQB5AE4AbwB0AGkAZgBpAGUAcgAuAEIAYQBsAGwAbwBvAG4AVABpAHAAVABlAHgAdAAgACAAPQAgACQAVABlAHgAdAANAAoAIAAgACAAIAAkAE0AeQBOAG8AdABpAGYAaQBlAHIALgBCAGEAbABsAG8AbwBuAFQAaQBwAFQAaQB0AGwAZQAgAD0AIAAkAFQAaQB0AGwAZQANAAoAIAAgACAAIAAkAE0AeQBOAG8AdABpAGYAaQBlAHIALgBWAGkAcwBpAGIAbABlACAAPQAgACQAdAByAHUAZQANAAoADQAKACAAIAAgACAAJABOAGUAdwBHAHUAaQBkACAAPQAgACgATgBlAHcALQBHAHUAaQBkACkALgBHAHUAaQBkAA0ACgAgACAAIAAgACQAVABpAG0AZQByAFMAaABvAHcAIAA9ACAATgBlAHcALQBPAGIAagBlAGMAdAAgAFQAaQBtAGUAcgBzAC4AVABpAG0AZQByAA0ACgAgACAAIAAgACQAVABpAG0AZQByAFMAaABvAHcALgBJAG4AdABlAHIAdgBhAGwAIAA9ACAAJABEAHUAcgBhAHQAaQBvAG4AIAArACAAMQAwADAAMAANAAoAIAAgACAAIAAkAFQAaQBtAGUAcgBTAGgAbwB3AC4AQQB1AHQAbwByAGUAcwBlAHQAIAA9ACAAJABUAHIAdQBlAA0ACgAgACAAIAAgACQAbwBiAGoAZQBjAHQARQB2AGUAbgB0AEEAcgBnAHMAIAA9ACAAQAB7AA0ACgAgACAAIAAgACAAIAAgACAASQBuAHAAdQB0AE8AYgBqAGUAYwB0ACAAPQAgACQAVABpAG0AZQByAFMAaABvAHcADQAKACAAIAAgACAAIAAgACAAIABFAHYAZQBuAHQATgBhAG0AZQAgAD0AIAAiAEUAbABhAHAAcwBlAGQAIgANAAoAIAAgACAAIAAgACAAIAAgAFMAbwB1AHIAYwBlAEkAZABlAG4AdABpAGYAaQBlAHIAIAA9ACAAIgAkAE4AZQB3AEcAdQBpAGQAIgANAAoAIAAgACAAIAB9AA0ACgAgACAAIAAgAFIAZQBnAGkAcwB0AGUAcgAtAE8AYgBqAGUAYwB0AEUAdgBlAG4AdAAgAEAAbwBiAGoAZQBjAHQARQB2AGUAbgB0AEEAcgBnAHMADQAKACAAIAAgACAAJABUAGkAbQBlAHIAUwBoAG8AdwAuAFMAdABhAHIAdAAoACkADQAKACAAIAAgACAAJABUAGkAbQBlAHIAUwBoAG8AdwAuAEUAbgBhAGIAbABlAGQAIAA9ACAAJABUAHIAdQBlAA0ACgAgACAAIAAgACQATQB5AE4AbwB0AGkAZgBpAGUAcgAuAFMAaABvAHcAQgBhAGwAbABvAG8AbgBUAGkAcAAoACQARAB1AHIAYQB0AGkAbwBuACkADQAKACAAIAAgACAAJABOAHUAbABsACAAPQAgAFcAYQBpAHQALQBFAHYAZQBuAHQAIAAiACQATgBlAHcARwB1AGkAZAAiAA0ACgAgACAAIAAgACQAVABpAG0AZQByAFMAaABvAHcALgBTAHQAbwBwACgAKQANAAoAIAAgACAAIABVAG4AcgBlAGcAaQBzAHQAZQByAC0ARQB2AGUAbgB0ACAALQBTAG8AdQByAGMAZQBJAGQAZQBuAHQAaQBmAGkAZQByACAAIgAkAE4AZQB3AEcAdQBpAGQAIgAgAC0ARQByAHIAbwByAEEAYwB0AGkAbwBuACAASQBnAG4AbwByAGUADQAKACAAIAAgACAAUgBlAG0AbwB2AGUALQBKAG8AYgAgAC0ATgBhAG0AZQAgAFQAaQBtAGUAcgAuAEUAbABhAHAAcwBlAGQAIAAtAEUAcgByAG8AcgBBAGMAdABpAG8AbgAgAEkAZwBuAG8AcgBlAA0ACgAgACAAIAAgACQAVABpAG0AZQByAFMAaABvAHcALgBEAGkAcwBwAG8AcwBlACgAKQANAAoAIAAgACAAIAAkAE0AeQBOAG8AdABpAGYAaQBlAHIALgBEAGkAcwBwAG8AcwBlACgAKQANAAoAfQANAAoATgBlAHcALQBUAHIAYQB5AE4AbwB0AGkAZgBpAGUAcgA=")
+            Start-Process -FilePath $PwshExe -ArgumentList $ArgList -NoNewWindow
+        }
         $Null = Remove-Item -Path tmpfile -Force -ErrorAction Ignore
         $totalMs = $stopwatch.Elapsed.TotalMilliseconds
         Write-Output "$totalMs"
@@ -124,9 +135,9 @@ function Save-UsingWGetJob{
         [Parameter(Mandatory=$true, ValueFromPipeline=$true, HelpMessage="Destination Directory where the files are saved", Position=1)]
         [string]$DestinationPath, 
         [Parameter(Mandatory=$false)]
-        [switch]$Asynchronous,
+        [switch]$Asynchronous,    
         [Parameter(Mandatory=$false)]
-        [switch]$EnableNotification         
+        [bool]$ShowNotification=$True     
     )
     try{
         [string]$JobName = (New-Guid).Guid
@@ -155,7 +166,7 @@ function Save-UsingWGetJob{
             JobName = $JobName
         }
         Write-LogEntry "Start job `"$JobName`" Asynchronous $Asynchronous"
-        $jobby = Start-Job -Name $JobName -ScriptBlock $WGetDownloadJobScriptBlock -ArgumentList ($Url,$DestinationPath,$WgetExe)
+        $jobby = Start-Job -Name $JobName -ScriptBlock $WGetDownloadJobScriptBlock -ArgumentList ($Url,$DestinationPath,$WgetExe,$ShowNotification)
         $Transferring  = $True
         if($Asynchronous){ 
             Write-LogEntry "Asynchronous Mode..."
@@ -217,18 +228,7 @@ function Receive-WGetJob{
         $DownloadCompletedPath = (Join-Path $ExportsPath "DownloadCompleted.exe")
         
         $Res = Get-Job -Name $JobName | Receive-Job -Wait
-        if($EnableNotification){
-            $message = @"
 
-A wget.exe download job just completed.
-
-$DestinationPath
-
-"@          
-
-            Show-InternalMiniInfoPopup $message "WGET JOB COMLPETED"
-            #&"$DownloadCompletedPath" "$DestinationPath"
-        }
         $Res
     }catch{
         Show-ExceptionDetails $_ -ShowStack

@@ -247,7 +247,13 @@ DownloadMode     : `"$DownloadMode`"
                             $Job = Save-UsingBitsModule -Url "$DownloadUrl" -DestinationPath "$DestinationFile" -Asynchronous:$Asynchronous
                         }
         }
-        
+        <#if($Asynchronous -ne $True){
+            $Icon = 'youtube_color'
+            $Title = "DOWNLOAD COMPLETE"
+            $Text = "$DestinationFile"
+            $Duration = 5000
+            New-SystemTrayNotifier -Text "$Text" -Title $Title -Duration $Duration -ExtendedIcon $Icon
+        }#>
         "$DestinationFile"
     }
     catch{
@@ -332,11 +338,18 @@ function Request-VideoInformation{
 function Request-VideoFormats{
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory=$true, ValueFromPipeline=$true, HelpMessage="Url of the Youtube video", Position=0)]
-        [string]$Url
+        [Parameter(Mandatory=$true, HelpMessage="Url of the Youtube video", Position=0)]
+        [string]$Url,
+        [Parameter(Mandatory=$false)]
+        [switch]$SelectAllProperties
     )
     $Data = Request-VideoInformation $Url
-    $VideoFormats = $Data.formats | select * | sort -Property quality
+    if($SelectAllProperties){
+        $VideoFormats = $Data.formats | select * | sort -Property quality
+    }else{
+        $VideoFormats = $Data.formats | select format_id, protocol, vcodec, acodec, ext, height,  width, format, audio_ext, video_ext, http_headers | sort -Property quality
+    }
+    
     $VideoFormats
 }   
 
@@ -352,7 +365,7 @@ function Select-BestVideoFormat{
     )
     
     try{
-        $Data = Request-VideoFormats $Url -e
+        $Data = Request-VideoFormats $Url
         if($AudioIncluded){
             $Merged = $Data | Where vcodec -ne 'none' | Where acodec -ne 'none' | Sort -Property quality -Descending | select -First 1
             return $Merged

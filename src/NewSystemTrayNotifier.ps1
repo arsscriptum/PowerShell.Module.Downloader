@@ -64,20 +64,9 @@ function New-SystemTrayNotifier{
         [string]$ProcessIcon
     )
 
-
     Add-Type -AssemblyName System.Windows.Forms
     [System.Windows.Forms.NotifyIcon]$MyNotifier = [System.Windows.Forms.NotifyIcon]::new()
-    #Mouse double click on icon to dispose
-    [void](Register-ObjectEvent -ErrorAction Ignore -InputObject $MyNotifier -EventName MouseDoubleClick -SourceIdentifier IconClicked -Action  {
-        #Perform cleanup actions on balloon tip
-        Write-Verbose 'Disposing of balloon'
-        $MyNotifier.dispose()
-        Unregister-Event -SourceIdentifier IconClicked
-        Remove-Job -Name IconClicked
-      
-    })
 
- 
     if($PSBoundParameters.ContainsKey('ProcessIcon') -eq $True){
         $apppath =  Get-Process | Where Name -match $ProcessIcon | Select -Unique | Select-Object -ExpandProperty Path
         $MyNotifier.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon($apppath)
@@ -94,8 +83,25 @@ function New-SystemTrayNotifier{
     $MyNotifier.BalloonTipTitle = $Title
     $MyNotifier.Visible = $true
 
-    #Display the tip and specify in milliseconds on how long balloon will stay visible
+    $NewGuid = (New-Guid).Guid
+    $TimerShow = New-Object Timers.Timer
+    $TimerShow.Interval = $Duration + 1000
+    $TimerShow.Autoreset = $True
+    $objectEventArgs = @{
+        InputObject = $TimerShow
+        EventName = 'Elapsed'
+        SourceIdentifier = "$NewGuid"
+    }
+    Register-ObjectEvent @objectEventArgs
+    $TimerShow.Start()
+    $TimerShow.Enabled = $True
     $MyNotifier.ShowBalloonTip($Duration)
+    $Null = Wait-Event "$NewGuid"
+    $TimerShow.Stop()
+    Unregister-Event -SourceIdentifier "$NewGuid" -ErrorAction Ignore
+    Remove-Job -Name Timer.Elapsed -ErrorAction Ignore
+    $TimerShow.Dispose()
+    $MyNotifier.Dispose()
 }
 
 
